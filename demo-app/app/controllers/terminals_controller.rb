@@ -1,11 +1,15 @@
 class TerminalsController < ApplicationController
 	
   def current_user
-	  "pocha"
+	  "hemanth"
   end
 
   def index
   end
+
+    def index_t
+  end
+
 
   def get
 	  http = Curl.get("http://localhost:3001/#{current_user}/#{params[:terminal_id]}/get")

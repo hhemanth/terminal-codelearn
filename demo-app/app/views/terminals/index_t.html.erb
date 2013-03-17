@@ -1,0 +1,162 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>Shell</title>
+
+    <%= javascript_include_tag "jquery-term/jquery-1.7.1.min.js" %>
+    <%= javascript_include_tag "jquery-term/jquery.mousewheel-min.js" %>
+    <%= javascript_include_tag "jquery-term/jquery.terminal-src.js" %>
+    <%= stylesheet_link_tag "jquery.terminal.css" %>
+
+    <style>
+    .terminal a.ui-slider-handle:focus { outline: none; }
+    body { margin: 0; padding: 0; }
+    html { background-color: #000; }
+    .clear { clear: both; }
+    /* This works only in Safari and Google Chrome */
+    @media screen and (-webkit-min-device-pixel-ratio:0) {
+        .terminal, .terminal .terminal-output, .terminal .terminal-output div,
+        .terminal .terminal-output div div, .cmd, .terminal .cmd span, .terminal .cmd div {
+            font-weight: bold;
+        }
+    }
+    </style>
+<script>
+
+var _number = 0
+var p = ">>"
+var removeFirstOutputLine = true
+
+$(function() {
+    var pwd, last_dir, home_dir;
+    var terminal = $('#shell').terminal(function(command, term) {
+         
+         if (command == 'vim' || command == 'emacs' || command == 'ruby' || command == 'python') {
+            term.echo("Command not supported");
+            return;
+         }
+         
+     
+        if (command.replace(/^ *(.*) *$/, '$1') == '-') {
+            pwd = last_dir;
+            return;
+        }
+        term.pause();
+        removeFirstOutputLine = true
+        $.get("/terminals/0/execute/", {
+            command: command
+        }, function(response) {
+            //fetchData(response)
+            //pwd ="hemanth"
+            fetchData(response,term)
+            console.log ("Some data received")
+            console.log("Data received - " + response.content)
+            console.log("Status" +  response.status)
+            /*
+            if (response.status == "complete") {
+                var lines = response.content.match(/^.*([\n\r]+|$)/gm);
+                //lines.splice(0,1);
+                //response.content = response.content.replace(/^.*?\r\n/,"")
+                term.set_prompt(lines[lines.length-1])
+                content = lines.join('')
+                term.echo(response.content);
+                term.resume()
+            }*/
+
+            //term.echo(response.status);
+
+           // pwd = response.result.cwd;
+            //term.resume();
+        });
+    }, {
+        name: 'shell',
+        prompt: cur_prompt
+    }).css({
+        overflow: 'auto'
+    });
+
+    $(window).resize(function() {
+       terminal.css('height', $(window).height()-20);
+    }).resize();
+
+});
+var cur_prompt = "$"
+var Scheduled
+
+    function get_prompt_del_last_line(data){
+        var lines = data.content.match(/^.*([\n\r]+|$)/gm);
+        cur_prompt = lines[lines.length-1]
+        return data.content.replace(/\r?\n?[^\r\n]*$/, "");
+    }
+
+    function _setTimeout(func,time) {
+        clearTimeout(Scheduled)
+        Scheduled = setTimeout(func,time)
+    }
+
+    function fetchData(data,term) {
+        if ( data.content != "") { 
+            console.log("Data received - " + data.content)
+            if (removeFirstOutputLine) {
+                //remove first line, bcos its the command repeated
+                data.content = data.content.replace(/^.*?\r\n/,"")
+                removeFirstOutputLine = false
+            }
+            
+            if(data.status == "complete"){
+            //remove last line
+               data.content = get_prompt_del_last_line(data)
+            } 
+            term.echo(data.content)
+            
+            //getElement("#output").append(data.content)
+            //objDiv.scrollTop = objDiv.scrollHeight
+        }
+        if ( data.status == "waiting" ) {
+            _setTimeout(function() {poll(fetchData,term)}, 1000)
+        }
+        else if (data.status == "error") {
+            initialize()
+        }
+        else { //complete
+            term.set_prompt(cur_prompt)   
+            clearTimeout(Scheduled)
+            term.resume()
+            //$("#loading-img").hide()
+        }
+    }
+
+
+    function poll(func,term) {
+        console.log("inside poll")
+        $.ajax( {
+            url: "/terminals/"+_number+"/get",
+            success : function(data, textStatus, jqXHR){
+                if ( data == "" ) {
+                    _setTimeout(function() {poll(func)}, 1000)
+                }
+                else {
+                    func(data,term)
+                }
+            }
+        })
+    }
+
+
+     $(document).ready(function() {
+            $.get("/terminals/0/execute/", {
+
+        }, function(response) {
+            console.log(response.content)
+            get_prompt_del_last_line(response)
+        });
+
+    });
+
+</script>
+</head>
+<body>
+  <div id="shell"></div>
+</body>
+</html>

@@ -1,7 +1,8 @@
 TerminalCodelearn::Application.routes.draw do
 	
-  root :to => "terminals#index" 
+  root :to => "terminals#index_t" 
 
+  get "terminals/index"
   match "terminals/:terminal_id/get" => "terminals#get"
 
   match "terminals/:terminal_id/execute" => "terminals#execute"
