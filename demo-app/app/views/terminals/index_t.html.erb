@@ -18,38 +18,94 @@
     @media screen and (-webkit-min-device-pixel-ratio:0) {
         .terminal, .terminal .terminal-output, .terminal .terminal-output div,
         .terminal .terminal-output div div, .cmd, .terminal .cmd span, .terminal .cmd div {
-            font-weight: bold;
         }
     }
     </style>
+
+    <ul class="nav nav-tabs">
+    <li class="active"><a href="#t-1" data-toggle="pill">Terminal 1</a></li>
+    <li><a href="#t-2" data-toggle="pill">Terminal 2</a></li>
+</ul>
+
+<div class="tab-content" style="position:relative">
+<div id="t-1" class="tab-pane active">
+
+    <img style="position:fixed; left: 45%; top: 45%; z-index:1; height:40px; display:none" src="/assets/loading51.gif" id="loading-img1"/>
+
+    <div id="terminal-1" class="tab-pane active">
+    </div>
+     <div class="span6">
+        <!--<button id="refresh" class="btn btn-success">Get Data</button>-->
+        <button id="kill" class="btn">Kill process</button>
+        <button id="reset" class="btn">Reset</button>
+    </div>
+</div> <!-- t-1 -->
+    
+    <div id="t-2" class="tab-pane">
+            <img style="position:fixed; left: 45%; top: 45%; z-index:1; height:40px; display:none" src="/assets/loading51.gif" id="loading-img2"/>
+
+        <div class="row-fluid">
+             <div id="terminal-2" class="tab-pane active">
+              </div>
+            <div class="span6">
+                <!--<button id="refresh" class="btn btn-success">Get Data</button>-->
+                <!-- <button id="kill" class="btn">Kill process</button>
+                <button id="reset" class="btn">Reset</button> -->
+            </div>
+        </div>
+    </div> <!-- t2 -->
+
+</div><!-- tab-content -->
 <script>
+$(document).ready(function() {
+
+     
+        t1 = new CodelearnTerminal('1',0)
+        t1.setup()
+
+       t2 = new CodelearnTerminal('2',1)
+  //      t2.setup()
+
+    });
 
 var _number = 0
-var p = ">>"
 var removeFirstOutputLine = true
 
-$(function() {
+function CodelearnTerminal(_id,_number) {
+
     var pwd, last_dir, home_dir;
-    var terminal = $('#shell').terminal(function(command, term) {
+    var id = _id
+    var term_number = "#terminal-" +  id
+    var loading_img = "#loading-img" + id
+
+     function getElement(element) {
+        return $("#t-"+id+" "+element)
+    }
+
+    console.log("Initializing" + term_number)
+ 
+    var terminal = $(term_number).terminal(function(command, term) {
+    
          
          if (command == 'vim' || command == 'emacs' || command == 'ruby' || command == 'python') {
             term.echo("Command not supported");
             return;
          }
-         
-     
         if (command.replace(/^ *(.*) *$/, '$1') == '-') {
             pwd = last_dir;
             return;
         }
         term.pause();
+        $(loading_img).show()
         removeFirstOutputLine = true
-        $.get("/terminals/0/execute/", {
+        //first terminal
+        var execution_url = "/terminals/" + _number + "/execute/"
+        $.get(execution_url, {
             command: command
         }, function(response) {
             //fetchData(response)
             //pwd ="hemanth"
-            fetchData(response,term)
+            fetchData(response,term,id)
             console.log ("Some data received")
             console.log("Data received - " + response.content)
             console.log("Status" +  response.status)
@@ -75,12 +131,50 @@ $(function() {
     }).css({
         overflow: 'auto'
     });
+    this.terminal = terminal
 
     $(window).resize(function() {
        terminal.css('height', $(window).height()-20);
+       //console.log(terminal.getTerm())
     }).resize();
 
-});
+ 
+this.setup = function() {
+
+        //getElement("#refresh").click(function(){ poll(fetchData) });
+
+        getElement("#kill").click(function(){
+            $.ajax ({
+                url: "/terminals/"+_number+"/kill",
+                success: function(data){ fetchData(data,terminal,id) }
+            })
+        })
+
+        getElement("#reset").click(function(){
+            $.ajax({
+                beforeSend: function() {
+                    //getElement("#output").html('')
+                    $("#loading-img").show()
+                }
+                , url: "/terminals/"+_number+"/reset",
+                success: function(data) { fetchData(data,terminal,id) }
+            })
+        })
+
+        initialize();
+ 
+ } //setup
+
+function initialize() {
+        $.ajax({
+            url: "/terminals/"+_number+"/execute/",
+            success: function(data) { fetchData(data,terminal,id) }
+            ,complete: function() { //getElement("input[name='command']").focus(); 
+        }
+        })
+        terminal.echo("terminal initialized")
+    } //initialize
+
 var cur_prompt = "$"
 var Scheduled
 
@@ -95,7 +189,8 @@ var Scheduled
         Scheduled = setTimeout(func,time)
     }
 
-    function fetchData(data,term) {
+    function fetchData(data,term,id) {
+        var loading_img = "#loading-img" + id
         if ( data.content != "") { 
             console.log("Data received - " + data.content)
             if (removeFirstOutputLine) {
@@ -119,11 +214,11 @@ var Scheduled
         else if (data.status == "error") {
             initialize()
         }
-        else { //complete
+        else if (data.status == "complete") { //complete
             term.set_prompt(cur_prompt)   
             clearTimeout(Scheduled)
             term.resume()
-            //$("#loading-img").hide()
+            $(loading_img).hide()
         }
     }
 
@@ -142,6 +237,7 @@ var Scheduled
             }
         })
     }
+} //CodelearnTerminal
 
 
      $(document).ready(function() {
@@ -149,10 +245,11 @@ var Scheduled
 
         }, function(response) {
             console.log(response.content)
-            get_prompt_del_last_line(response)
+            //get_prompt_del_last_line(response)
         });
 
     });
+
 
 </script>
 </head>
