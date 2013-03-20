@@ -136,6 +136,7 @@ function CodelearnTerminal(_id,_number) {
 
 	function fetchData(data) {
 		if ( data.content != "") { 
+			console.log ("Some data")
 			console.log("Data received - " + data.content)
 			if (removeFirstOutputLine) {
 				data.content = data.content.replace(/^.*?\r\n/,"\r\n")
