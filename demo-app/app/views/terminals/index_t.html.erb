@@ -12,7 +12,7 @@
     <style>
     .terminal a.ui-slider-handle:focus { outline: none; }
     body { margin: 0; padding: 0; }
-    html { background-color: #000; }
+    html { background-color: #FFF; }
     .clear { clear: both; }
     /* This works only in Safari and Google Chrome */
     @media screen and (-webkit-min-device-pixel-ratio:0) {
@@ -23,16 +23,16 @@
     </style>
 
     <ul class="nav nav-tabs">
-    <li class="active"><a href="#t-1" data-toggle="pill">Terminal 1</a></li>
-    <li><a href="#t-2" data-toggle="pill">Terminal 2</a></li>
-</ul>
+      <li class="active"><a href="#t-1" data-toggle="pill">Terminal 1</a></li>
+      <li><a href="#t-2" data-toggle="pill">Terminal 2</a></li>
+   </ul>
 
 <div class="tab-content" style="position:relative">
 <div id="t-1" class="tab-pane active">
 
     <img style="position:fixed; left: 45%; top: 45%; z-index:1; height:40px; display:none" src="/assets/loading51.gif" id="loading-img1"/>
 
-    <div id="terminal-1" class="tab-pane active">
+    <div id="terminal-1" class="tab-pane ">
     </div>
      <div class="span6">
         <!--<button id="refresh" class="btn btn-success">Get Data</button>-->
@@ -44,27 +44,24 @@
     <div id="t-2" class="tab-pane">
             <img style="position:fixed; left: 45%; top: 45%; z-index:1; height:40px; display:none" src="/assets/loading51.gif" id="loading-img2"/>
 
-        <div class="row-fluid">
-             <div id="terminal-2" class="tab-pane active">
+             <div id="terminal-2" class="tab-pane">
               </div>
             <div class="span6">
                 <!--<button id="refresh" class="btn btn-success">Get Data</button>-->
-                <!-- <button id="kill" class="btn">Kill process</button>
-                <button id="reset" class="btn">Reset</button> -->
+                <button id="kill" class="btn">Kill process</button>
+                <button id="reset" class="btn">Reset</button> 
             </div>
-        </div>
     </div> <!-- t2 -->
 
 </div><!-- tab-content -->
 <script>
 $(document).ready(function() {
-
-     
+ 
         t1 = new CodelearnTerminal('1',0)
         t1.setup()
 
        t2 = new CodelearnTerminal('2',1)
-  //      t2.setup()
+       t2.setup()
 
     });
 
@@ -82,7 +79,7 @@ function CodelearnTerminal(_id,_number) {
         return $("#t-"+id+" "+element)
     }
 
-    console.log("Initializing" + term_number)
+    console.log("Initializing " + term_number)
  
     var terminal = $(term_number).terminal(function(command, term) {
     
@@ -106,7 +103,7 @@ function CodelearnTerminal(_id,_number) {
             //fetchData(response)
             //pwd ="hemanth"
             fetchData(response,term,id)
-            console.log ("Some data received")
+            console.log ("Some data received:: " + id )
             console.log("Data received - " + response.content)
             console.log("Status" +  response.status)
             /*
@@ -134,7 +131,7 @@ function CodelearnTerminal(_id,_number) {
     this.terminal = terminal
 
     $(window).resize(function() {
-       terminal.css('height', $(window).height()-20);
+       terminal.css('height', $(window).height()-130);
        //console.log(terminal.getTerm())
     }).resize();
 
@@ -169,7 +166,7 @@ function initialize() {
         $.ajax({
             url: "/terminals/"+_number+"/execute/",
             success: function(data) { fetchData(data,terminal,id) }
-            ,complete: function() { //getElement("input[name='command']").focus(); 
+            ,complete: function() { getElement("prompt").focus(); 
         }
         })
         terminal.echo("terminal initialized")
@@ -178,7 +175,7 @@ function initialize() {
 var cur_prompt = "$"
 var Scheduled
 
-    function get_prompt_del_last_line(data){
+    function get_prompt_del_last_line(term,data){
         var lines = data.content.match(/^.*([\n\r]+|$)/gm);
         cur_prompt = lines[lines.length-1]
         return data.content.replace(/\r?\n?[^\r\n]*$/, "");
@@ -201,9 +198,10 @@ var Scheduled
             
             if(data.status == "complete"){
             //remove last line
-               data.content = get_prompt_del_last_line(data)
+               data.content = get_prompt_del_last_line(term,data)
             } 
             term.echo(data.content)
+            data.content =""
             
             //getElement("#output").append(data.content)
             //objDiv.scrollTop = objDiv.scrollHeight
@@ -240,15 +238,7 @@ var Scheduled
 } //CodelearnTerminal
 
 
-     $(document).ready(function() {
-            $.get("/terminals/0/execute/", {
-
-        }, function(response) {
-            console.log(response.content)
-            //get_prompt_del_last_line(response)
-        });
-
-    });
+   
 
 
 </script>
